@@ -1,0 +1,5 @@
+file(GLOB source_files **.cc **.h)
+add_library(redis_core ${source_files})
+set_target_properties(redis_core PROPERTIES LINKER_LANGUAGE CXX)
+#add_executable(core main.cc)
+#target_link_libraries(core PRIVATE redis_lib)
