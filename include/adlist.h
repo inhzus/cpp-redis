@@ -38,7 +38,7 @@ class ListIterator {
  public:
   ListIterator() : _node(nullptr) {}
   ListIterator(const ListIterator &it) : _node(it._node) {}
-  ListIterator(const link_type &node) : _node(node) {}
+  explicit ListIterator(const link_type &node) : _node(node) {}
 
   reference operator*() {
     return _node->value;
@@ -70,7 +70,7 @@ class ListIterator {
   }
 
   bool operator==(const ListIterator &it) const {
-    return _node==it._node;
+    return _node == it._node;
   }
 
   bool operator!=(const ListIterator &it) const {
@@ -104,13 +104,13 @@ class List {
   }
 
   template<class InIt>
-  void _list_aux(InIt first, InIt last, std::__false_type) {
+  void _list_aux(const InIt first, const InIt last, std::__false_type) {
     _empty_initialize();
-    for (; first!=last; first++)
-      _add_node(_tail, *first);
+    for (auto ptr = first; ptr != last; ptr++)
+      _add_node(_tail, *ptr);
   }
 
-  void _list_aux(size_type n, const_reference val, std::__true_type) {
+  void _list_aux(const size_type n, const_reference val, std::__true_type) {
     _empty_initialize();
     for (size_type i = 0; i < n; i++)
       _add_node(_tail, val);
@@ -134,7 +134,7 @@ class List {
   }
 
   link_type _erase(link_type first, link_type last) {
-    while (first!=last)
+    while (first != last)
       first = _remove_node(first);
   }
 
@@ -143,7 +143,7 @@ class List {
     _empty_initialize();
   }
   List(const List &list) {
-    _empty_initialize();
+//    _empty_initialize();
     _list_aux(list.begin(), list.end(), std::__false_type());
   }
 
@@ -160,7 +160,7 @@ class List {
   }
 
   template<class InIt>
-  List(InIt first, InIt last) {
+  List(const InIt first, const InIt last) {
     _list_aux(first, last, typename std::__is_integer<InIt>::__type());
   }
   List(size_type n, const_reference val) {
@@ -206,7 +206,7 @@ class List {
   }
 
   iterator search(const_reference val) {
-    return std::find_if(_tail->next, _tail, [=](link_type node) { return node->value==val; });
+    return std::find_if(_tail->next, _tail, [=](link_type node) { return node->value == val; });
   }
 
   void rotate() {
@@ -214,15 +214,16 @@ class List {
     push_front(val);
   }
 
-  value_type operator[](size_type n) {
+  value_type operator[](const size_type n) {
     iterator pit = _tail->next;
-    while (n--)
+    for (size_type i = n; i != 0; i--) {
       pit++;
+    }
     return *pit;
   }
 
-  List &operator=(const List& list) {
-    ~List();
+  List &operator=(const List &list) {
+    _erase(_tail->next, _tail);
     _list_aux(list.begin(), list.end(), std::__false_type());
     return *this;
   }
