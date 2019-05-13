@@ -17,11 +17,16 @@ class ListNode {
   ListNode *next;
   T value;
 //  ListNode() : value(T()), prev(nullptr), next(nullptr) {}
-  explicit ListNode(T val = T(), ListNode *pv = nullptr, ListNode *nt = nullptr) : value(val), prev(pv), next(nt) {}
+  explicit ListNode(T val = T(), ListNode *pv = nullptr, ListNode *nt = nullptr)
+      : value(val), prev(pv), next(nt) {}
 };
 
 template<class T>
-class ListIterator {
+class ListConstIterator;
+
+template<class T>
+class ListIterator {// private:
+
  public:
   typedef T value_type;
   typedef T *pointer;
@@ -32,7 +37,6 @@ class ListIterator {
   typedef size_t size_type;
   typedef ptrdiff_t difference_type;
 
- private:
   link_type _node;
 
  public:
@@ -87,16 +91,16 @@ class ListConstIterator {
   typedef const T &reference;
   typedef std::bidirectional_iterator_tag iterator_category;
 
-  typedef ListNode<T> *link_type;
+  typedef const ListNode<T> *link_type;
   typedef size_t size_type;
   typedef ptrdiff_t difference_type;
 
- private:
   link_type _node;
 
  public:
   ListConstIterator() : _node(nullptr) {}
   ListConstIterator(const ListConstIterator &it) : _node(it._node) {}
+  explicit ListConstIterator(const ListIterator<T> &it) : _node(it._node) {}
   explicit ListConstIterator(const link_type &node) : _node(node) {}
 
   reference operator*() const {
@@ -145,6 +149,7 @@ class List {
   typedef ListIterator<T> iterator;
   typedef ListConstIterator<T> const_iterator;
   typedef std::reverse_iterator<ListIterator<T>> reverse_iterator;
+  typedef std::reverse_iterator<ListConstIterator<T>> const_reverse_iterator;
   typedef ListNode<T> *link_type;
   typedef T &reference;
   typedef const T &const_reference;
@@ -242,10 +247,12 @@ class List {
   size_type size() const { return _len; }
   iterator begin() { return iterator(_tail->next); }
   iterator end() { return iterator(_tail); }
-  reverse_iterator rbegin() const { return reverse_iterator(end()); }
-  reverse_iterator rend() const { return reverse_iterator(begin()); }
+  reverse_iterator rbegin() { return reverse_iterator(end()); }
+  reverse_iterator rend() { return reverse_iterator(begin()); }
   const_iterator begin() const { return const_iterator(_tail->next); }
   const_iterator end() const { return const_iterator(_tail); }
+  const_reverse_iterator rbegin() const { return const_reverse_iterator(rbegin()); }
+  const_reverse_iterator rend() const { return const_reverse_iterator(rend()); }
 
   void push_back(const_reference val) {
     _add_node(_tail, val);
@@ -264,8 +271,27 @@ class List {
     return val;
   }
 
+  bool insert(const_reference pos, const_reference val, bool after) {
+    iterator it = std::find(begin(), end(), pos);
+    if (it == end()) {
+      return false;
+    }
+    if (after) { it++; }
+    _add_node(it._node, val);
+    return true;
+  }
+
+  bool remove(const_reference val) {
+    iterator it = std::find(begin(), end(), val);
+    if (it == end()) {
+      return false;
+    }
+    _remove_node(it._node);
+    return true;
+  }
+
   iterator search(const_reference val) {
-    return std::find_if(_tail->next, _tail, [=](link_type node) { return node->value == val; });
+    return std::find(begin(), end(), val);
   }
 
   void rotate() {
@@ -273,10 +299,22 @@ class List {
     push_front(val);
   }
 
-  value_type operator[](const size_type n) {
-    iterator pit = _tail->next;
-    for (size_type i = n; i != 0; i--) {
-      pit++;
+  bool empty() const {
+    return _len == 0;
+  }
+
+  value_type operator[](const int n) {
+    iterator pit;
+    if (n >= 0) {
+      pit = iterator(_tail->next);
+      for (int i = n; i != 0; i--) {
+        pit++;
+      }
+    } else {
+      pit = iterator(_tail);
+      for (int i = n; i != 0; i++) {
+        pit--;
+      }
     }
     return *pit;
   }
