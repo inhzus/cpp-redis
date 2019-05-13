@@ -9,6 +9,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+
 namespace rd {
 class String {
  public:
@@ -19,10 +20,11 @@ class String {
   typedef char &reference;
   typedef const char &const_reference;
   typedef ptrdiff_t difference_type;
+
  private:
-  iterator _begin{};
-  iterator _end{};
-  iterator _storage_end{};
+  iterator begin_{};
+  iterator end_{};
+  iterator storage_end_{};
 
   std::allocator<value_type> allocator;
 
@@ -30,16 +32,16 @@ class String {
   void allocateAndCopy(InIt first, InIt last);
   size_type getNewCapacity(size_type n) const;
   template<class InIt>
-  void construct_aux(InIt first, InIt last, std::__false_type);
+  void constructAux(InIt first, InIt last, std::__false_type);
   template<class InIt>
-  void construct_aux(InIt ite, size_type n, std::__true_type);
+  void constructAux(InIt ite, size_type n, std::__true_type);
   template<class InIt>
-  String &assign_aux(InIt first, InIt last, std::__false_type);
+  String &assignAux(InIt first, InIt last, std::__false_type);
   template<class InIt>
-  String &assign_aux(InIt ite, size_type n, std::__true_type);
+  String &assignAux(InIt ite, size_type n, std::__true_type);
 
  public:
-  String() : _begin(nullptr), _end(nullptr), _storage_end(nullptr) {}
+  String() : begin_(nullptr), end_(nullptr), storage_end_(nullptr) {}
   explicit String(const char *s);
   String(const String &string);
   template<class InIt>
@@ -47,11 +49,11 @@ class String {
   String(const char *s, size_type n);
   ~String();
 
-  iterator begin() const { return _begin; }
-  iterator end() const { return _end; }
-  size_type capacity() const { return _storage_end - _begin; }
-  size_type size() const { return _end - _begin; }
-  size_type empty() const { return _end == _begin; }
+  iterator begin() const { return begin_; }
+  iterator end() const { return end_; }
+  size_type capacity() const { return storage_end_ - begin_; }
+  size_type size() const { return end_ - begin_; }
+  size_type empty() const { return end_ == begin_; }
   void clear();
 
   template<class InIt>
@@ -80,64 +82,64 @@ class String {
 template<class InIt>
 void String::allocateAndCopy(InIt first, InIt last) {
   auto len = static_cast<size_type>(std::distance(first, last));
-  _begin = allocator.allocate(len + 1);
-  std::uninitialized_copy(first, last, _begin);
-  _storage_end = _end = _begin + len;
-  *_end = 0;
+  begin_ = allocator.allocate(len + 1);
+  std::uninitialized_copy(first, last, begin_);
+  storage_end_ = end_ = begin_ + len;
+  *end_ = 0;
 }
 template<class InIt>
-void String::construct_aux(InIt first, InIt last, std::__false_type) {
+void String::constructAux(InIt first, InIt last, std::__false_type) {
   allocateAndCopy(first, last);
 }
 template<class InIt>
-void String::construct_aux(InIt ite, String::size_type n, std::__true_type) {
+void String::constructAux(InIt ite, String::size_type n, std::__true_type) {
   allocateAndCopy(ite, ite + n);
 }
 template<class InIt>
 String::String(InIt first, InIt last) {
-  construct_aux(first, last, typename std::__is_integer<InIt>::__type());
+  constructAux(first, last, typename std::__is_integer<InIt>::__type());
 }
 template<class InIt>
 String &String::append(InIt first, InIt last) {
   auto offset = static_cast<size_type>(std::distance(first, last));
-  if (offset < _storage_end - _end) {
+  if (offset < storage_end_ - end_) {
     while (first != last)
-      *_end++ = *first++;
-    *_end = 0;
+      *end_++ = *first++;
+    *end_ = 0;
   } else {
     size_type newCapacity = getNewCapacity(offset);
     iterator newBeginIterator = allocator.allocate(newCapacity + 1);
-    _end = std::uninitialized_copy(_begin, _end, newBeginIterator);
-    _end = std::uninitialized_copy(first, last, _end);
-    allocator.deallocate(_begin, capacity() + 1);
-    _begin = newBeginIterator;
-    *_end = 0;
-    _storage_end = newBeginIterator + newCapacity;
+    end_ = std::uninitialized_copy(begin_, end_, newBeginIterator);
+    end_ = std::uninitialized_copy(first, last, end_);
+    allocator.deallocate(begin_, capacity() + 1);
+    begin_ = newBeginIterator;
+    *end_ = 0;
+    storage_end_ = newBeginIterator + newCapacity;
   }
   return *this;
 }
 template<class InIt>
-String &String::assign_aux(InIt first, InIt last, std::__false_type) {
+String &String::assignAux(InIt first, InIt last, std::__false_type) {
   auto len = static_cast<size_type>(std::distance(first, last));
   if (len < capacity()) {
-    std::uninitialized_copy(first, last, _begin);
-    _end = _begin + len;
-    *_end = 0;
+    std::uninitialized_copy(first, last, begin_);
+    end_ = begin_ + len;
+    *end_ = 0;
   } else {
-    allocator.deallocate(_begin, capacity());
-    _begin = allocator.allocate(len + 1);
-    _storage_end = _end = std::uninitialized_copy(first, last, _begin);
-    *_end = 0;
+    allocator.deallocate(begin_, capacity());
+    begin_ = allocator.allocate(len + 1);
+    storage_end_ = end_ = std::uninitialized_copy(first, last, begin_);
+    *end_ = 0;
   }
   return *this;
 }
 template<class InIt>
-String &String::assign_aux(InIt ite, String::size_type n, std::__true_type) {
-  return assign_aux(ite, ite + n, std::__false_type());
+String &String::assignAux(InIt ite, String::size_type n, std::__true_type) {
+  return assignAux(ite, ite + n, std::__false_type());
 }
 template<class InIt>
 String &String::assign(InIt first, InIt last) {
-  return assign_aux(first, last, std::__is_integer<InIt>::__type());
+  return assignAux(first, last, std::__is_integer<InIt>::__type());
 }
 
 }

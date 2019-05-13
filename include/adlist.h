@@ -5,105 +5,108 @@
 #ifndef REDIS_ADLIST_H
 #define REDIS_ADLIST_H
 
-#include <memory>
 #include <algorithm>
 #include <iterator>
+#include <memory>
 
 namespace rd {
 template<class T>
-class ListNode {
+class _ListNode {
  public:
-  ListNode *prev;
-  ListNode *next;
+  _ListNode *prev;
+  _ListNode *next;
   T value;
-//  ListNode() : value(T()), prev(nullptr), next(nullptr) {}
-  explicit ListNode(T val = T(), ListNode *pv = nullptr, ListNode *nt = nullptr);
+//  _ListNode() : value(T()), prev(nullptr), next(nullptr) {}
+  explicit _ListNode(
+      T val = T(), _ListNode *pv = nullptr, _ListNode *nt = nullptr);
 };
 
 template<class T>
-class ListIterator {
+class _ListIterator {
  public:
   typedef T value_type;
   typedef T *pointer;
   typedef T &reference;
   typedef std::bidirectional_iterator_tag iterator_category;
 
-  typedef ListNode<T> *link_type;
+  typedef _ListNode<T> *link_type;
   typedef size_t size_type;
   typedef ptrdiff_t difference_type;
 
-  link_type _node;
+  link_type node_;
 
  public:
-  ListIterator() : _node(nullptr) {}
-  ListIterator(const ListIterator &it) : _node(it._node) {}
-  explicit ListIterator(const link_type &node) : _node(node) {}
+  _ListIterator() : node_(nullptr) {}
+  _ListIterator(const _ListIterator &it) : node_(it.node_) {}
+  explicit _ListIterator(const link_type &node) : node_(node) {}
 
   reference operator*();
   pointer operator->();
-  ListIterator &operator++();
-  const ListIterator operator++(int);
-  ListIterator &operator--();
-  const ListIterator operator--(int);
-  bool operator==(const ListIterator &it) const;
-  bool operator!=(const ListIterator &it) const;
+  _ListIterator &operator++();
+  const _ListIterator operator++(int);
+  _ListIterator &operator--();
+  const _ListIterator operator--(int);
+  bool operator==(const _ListIterator &it) const;
+  bool operator!=(const _ListIterator &it) const;
 };
 
 template<class T>
-class ListConstIterator {
+class _ListConstIterator {
  public:
   typedef T value_type;
   typedef const T *pointer;
   typedef const T &reference;
   typedef std::bidirectional_iterator_tag iterator_category;
 
-  typedef const ListNode<T> *link_type;
+  typedef const _ListNode<T> *link_type;
   typedef size_t size_type;
   typedef ptrdiff_t difference_type;
 
-  link_type _node;
+  link_type node_;
 
  public:
-  ListConstIterator() : _node(nullptr) {}
-  ListConstIterator(const ListConstIterator &it) : _node(it._node) {}
-  explicit ListConstIterator(const ListIterator<T> &it) : _node(it._node) {}
-  explicit ListConstIterator(const link_type &node) : _node(node) {}
+  _ListConstIterator() : node_(nullptr) {}
+  _ListConstIterator(const _ListConstIterator &it) : node_(it.node_) {}
+  explicit _ListConstIterator(const _ListIterator<T> &it)
+      : node_(it.node_) {}
+  explicit _ListConstIterator(const link_type &node) : node_(node) {}
 
   reference operator*() const;
   pointer operator->() const;
-  ListConstIterator &operator++();
-  const ListConstIterator operator++(int);
-  ListConstIterator &operator--();
-  const ListConstIterator operator--(int);
-  bool operator==(const ListConstIterator &it) const;
-  bool operator!=(const ListConstIterator &it) const;
+  _ListConstIterator &operator++();
+  const _ListConstIterator operator++(int);
+  _ListConstIterator &operator--();
+  const _ListConstIterator operator--(int);
+  bool operator==(const _ListConstIterator &it) const;
+  bool operator!=(const _ListConstIterator &it) const;
 };
 
 template<class T>
 class List {
  public:
   typedef T value_type;
-  typedef ListIterator<T> iterator;
-  typedef ListConstIterator<T> const_iterator;
-  typedef std::reverse_iterator<ListIterator<T>> reverse_iterator;
-  typedef std::reverse_iterator<ListConstIterator<T>> const_reverse_iterator;
-  typedef ListNode<T> *link_type;
+  typedef _ListIterator<T> iterator;
+  typedef _ListConstIterator<T> const_iterator;
+  typedef std::reverse_iterator<_ListIterator<T>> reverse_iterator;
+  typedef std::reverse_iterator<_ListConstIterator<T>>
+      const_reverse_iterator;
+  typedef _ListNode<T> *link_type;
   typedef T &reference;
   typedef const T &const_reference;
   typedef size_t size_type;
   typedef ptrdiff_t difference_type;
 
  private:
-  link_type _tail;
-  size_type _len{};
+  link_type tail_;
+  size_type len_{};
 
-  void _empty_initialize();
+  void emptyInitialize();
   template<class InIt>
-  void _list_aux(InIt first, InIt last, std::__false_type);
-  void _list_aux(size_type n, const_reference val, std::__true_type);
-  void _add_node(link_type node, const_reference val);
-  link_type _remove_node(link_type node);
-  link_type _erase(link_type first, link_type last);
+  void listAux(InIt first, InIt last, std::__false_type);
+  void listAux(size_type n, const_reference val, std::__true_type);
+  void addNode(link_type node, const_reference val);
+  link_type removeNode(link_type node);
+  link_type eraseRange(link_type first, link_type last);
 
  public:
   List();
@@ -117,20 +120,22 @@ class List {
   List(std::initializer_list<T> list);
 
   bool empty() const;
-  size_type size() const { return _len; }
-  iterator begin() { return iterator(_tail->next); }
-  iterator end() { return iterator(_tail); }
+  size_type size() const { return len_; }
+  iterator begin() { return iterator(tail_->next); }
+  iterator end() { return iterator(tail_); }
   reverse_iterator rbegin() { return reverse_iterator(end()); }
   reverse_iterator rend() { return reverse_iterator(begin()); }
-  const_iterator begin() const { return const_iterator(_tail->next); }
-  const_iterator end() const { return const_iterator(_tail); }
-  const_reverse_iterator rbegin() const { return const_reverse_iterator(rbegin()); }
-  const_reverse_iterator rend() const { return const_reverse_iterator(rend()); }
+  const_iterator begin() const { return const_iterator(tail_->next); }
+  const_iterator end() const { return const_iterator(tail_); }
+  const_reverse_iterator rbegin()
+  const { return const_reverse_iterator(rbegin()); }
+  const_reverse_iterator rend()
+  const { return const_reverse_iterator(rend()); }
 
-  void push_back(const_reference val);
-  void push_front(const_reference val);
-  value_type pop_back();
-  value_type pop_front();
+  void pushBack(const_reference val);
+  void pushFront(const_reference val);
+  value_type popBack();
+  value_type popFront();
 
   bool insert(const_reference pos, const_reference val, bool after);
   bool remove(const_reference val);
@@ -141,119 +146,126 @@ class List {
   List &operator=(const List &list);
 };
 template<class T>
-void List<T>::_empty_initialize() {
-  _tail = new ListNode<T>();
-  _tail->next = _tail;
-  _tail->prev = _tail;
-  _len = 0;
+void List<T>::emptyInitialize() {
+  tail_ = new _ListNode<T>();
+  tail_->next = tail_;
+  tail_->prev = tail_;
+  len_ = 0;
 }
 template<class T>
 template<class InIt>
-void List<T>::_list_aux(const InIt first, const InIt last, std::__false_type) {
-  _empty_initialize();
+void List<T>::listAux(const InIt first,
+                      const InIt last,
+                      std::__false_type) {
+  emptyInitialize();
   for (auto ptr = first; ptr != last; ptr++)
-    _add_node(_tail, *ptr);
+    addNode(tail_, *ptr);
 }
 template<class T>
-void List<T>::_list_aux(const List::size_type n, const_reference val, std::__true_type) {
-  _empty_initialize();
+void List<T>::listAux(size_type n,
+                      const_reference val,
+                      std::__true_type) {
+  emptyInitialize();
   for (size_type i = 0; i < n; i++)
-    _add_node(_tail, val);
+    addNode(tail_, val);
 }
 template<class T>
-void List<T>::_add_node(List::link_type node, const_reference val) {
-  auto pNode = new ListNode<T>(val, node->prev, node);
+void List<T>::addNode(List::link_type node, const_reference val) {
+  auto pNode = new _ListNode<T>(val, node->prev, node);
   node->prev->next = pNode;
   node->prev = pNode;
-  _len++;
+  len_++;
 }
 template<class T>
-typename List<T>::link_type List<T>::_remove_node(List::link_type node) {
+typename List<T>::link_type List<T>::removeNode(List::link_type node) {
   link_type next = node->next;
   link_type prev = node->prev;
   next->prev = prev;
   prev->next = next;
   delete node;
-  _len--;
+  len_--;
   return next;
 }
 template<class T>
-typename List<T>::link_type List<T>::_erase(List::link_type first, List::link_type last) {
+typename List<T>::link_type List<T>::eraseRange(
+    List::link_type first, List::link_type last) {
   while (first != last)
-    first = _remove_node(first);
+    first = removeNode(first);
 }
 template<class T>
 List<T>::List() {
-  _empty_initialize();
+  emptyInitialize();
 }
 
 template<class T>
 List<T>::List(const List &list) {
-//    _empty_initialize();
-  _list_aux(list.begin(), list.end(), std::__false_type());
+//    emptyInitialize();
+  listAux(list.begin(), list.end(), std::__false_type());
 }
 template<class T>
 List<T> List<T>::copy() {
   List pList;
-  pList._tail = _tail;
-  pList._len = _len;
+  pList.tail_ = tail_;
+  pList.len_ = len_;
   return pList;
 }
 template<class T>
 List<T>::~List() {
-  _erase(_tail->next, _tail);
-  delete (_tail);
+  eraseRange(tail_->next, tail_);
+  delete (tail_);
 }
 template<class T>
 template<class InIt>
 List<T>::List(const InIt first, const InIt last) {
-  _list_aux(first, last, typename std::__is_integer<InIt>::__type());
+  listAux(first, last, typename std::__is_integer<InIt>::__type());
 }
 template<class T>
 List<T>::List(List::size_type n, const_reference val) {
-  _list_aux(n, val, typename std::__is_integer<size_type>::__type());
+  listAux(n, val, typename std::__is_integer<size_type>::__type());
 }
 template<class T>
 List<T>::List(std::initializer_list<T> list) {
-  _list_aux(list.begin(), list.end(), typename std::__false_type());
+  listAux(list.begin(), list.end(), typename std::__false_type());
 }
 template<class T>
 List<T> &List<T>::merge(List &list) {
-  _tail->prev->next = list._tail->next;
-  list._tail->prev->next = _tail;
-  _len += list._len;
-  list._tail->next = list._tail->prev = list._tail;
-  list._len = 0;
+  tail_->prev->next = list.tail_->next;
+  list.tail_->prev->next = tail_;
+  len_ += list.len_;
+  list.tail_->next = list.tail_->prev = list.tail_;
+  list.len_ = 0;
   return *this;
 }
 template<class T>
-void List<T>::push_back(const_reference val) {
-  _add_node(_tail, val);
+void List<T>::pushBack(const_reference val) {
+  addNode(tail_, val);
 }
 template<class T>
-void List<T>::push_front(const_reference val) {
-  _add_node(_tail->next, val);
+void List<T>::pushFront(const_reference val) {
+  addNode(tail_->next, val);
 }
 template<class T>
-typename List<T>::value_type List<T>::pop_back() {
-  value_type val = _tail->prev->value;
-  _remove_node(_tail->prev);
+typename List<T>::value_type List<T>::popBack() {
+  value_type val = tail_->prev->value;
+  removeNode(tail_->prev);
   return val;
 }
 template<class T>
-typename List<T>::value_type List<T>::pop_front() {
-  value_type val = _tail->next->value;
-  _remove_node(_tail->next);
+typename List<T>::value_type List<T>::popFront() {
+  value_type val = tail_->next->value;
+  removeNode(tail_->next);
   return val;
 }
 template<class T>
-bool List<T>::insert(const_reference pos, const_reference val, bool after) {
+bool List<T>::insert(const_reference pos,
+                     const_reference val,
+                     bool after) {
   iterator it = std::find(begin(), end(), pos);
   if (it == end()) {
     return false;
   }
   if (after) { it++; }
-  _add_node(it._node, val);
+  addNode(it.node_, val);
   return true;
 }
 template<class T>
@@ -262,7 +274,7 @@ bool List<T>::remove(const_reference val) {
   if (it == end()) {
     return false;
   }
-  _remove_node(it._node);
+  removeNode(it.node_);
   return true;
 }
 template<class T>
@@ -271,23 +283,23 @@ typename List<T>::iterator List<T>::search(const_reference val) {
 }
 template<class T>
 void List<T>::rotate() {
-  value_type val = pop_back();
-  push_front(val);
+  value_type val = popBack();
+  pushFront(val);
 }
 template<class T>
 bool List<T>::empty() const {
-  return _len == 0;
+  return len_ == 0;
 }
 template<class T>
 typename List<T>::value_type List<T>::operator[](const int n) {
   iterator pit;
   if (n >= 0) {
-    pit = iterator(_tail->next);
+    pit = iterator(tail_->next);
     for (int i = n; i != 0; i--) {
       pit++;
     }
   } else {
-    pit = iterator(_tail);
+    pit = iterator(tail_);
     for (int i = n; i != 0; i++) {
       pit--;
     }
@@ -296,88 +308,90 @@ typename List<T>::value_type List<T>::operator[](const int n) {
 }
 template<class T>
 List<T> &List<T>::operator=(const List &list) {
-  _erase(_tail->next, _tail);
-  _list_aux(list.begin(), list.end(), std::__false_type());
+  eraseRange(tail_->next, tail_);
+  listAux(list.begin(), list.end(), std::__false_type());
   return *this;
 }
 
 template<class T>
-ListNode<T>::ListNode(T val, ListNode *pv, ListNode *nt)
+_ListNode<T>::_ListNode(T val, _ListNode *pv, _ListNode *nt)
     : value(val), prev(pv), next(nt) {}
 
 template<class T>
-typename ListIterator<T>::pointer ListIterator<T>::operator->() {
+typename _ListIterator<T>::pointer _ListIterator<T>::operator->() {
   return &(operator*());
 }
 template<class T>
-typename ListIterator<T>::reference ListIterator<T>::operator*() {
-  return _node->value;
+typename _ListIterator<T>::reference _ListIterator<T>::operator*() {
+  return node_->value;
 }
 template<class T>
-ListIterator<T> &ListIterator<T>::operator++() {
-  _node = _node->next;
+_ListIterator<T> &_ListIterator<T>::operator++() {
+  node_ = node_->next;
   return *this;
 }
 template<class T>
-const ListIterator<T> ListIterator<T>::operator++(int) {
-  ListIterator tmp = *this;
+const _ListIterator<T> _ListIterator<T>::operator++(int) {
+  _ListIterator tmp = *this;
   operator++();
   return tmp;
 }
 template<class T>
-ListIterator<T> &ListIterator<T>::operator--() {
-  _node = _node->prev;
+_ListIterator<T> &_ListIterator<T>::operator--() {
+  node_ = node_->prev;
 }
 template<class T>
-const ListIterator<T> ListIterator<T>::operator--(int) {
-  ListIterator tmp = *this;
+const _ListIterator<T> _ListIterator<T>::operator--(int) {
+  _ListIterator tmp = *this;
   operator--();
   return tmp;
 }
 template<class T>
-bool ListIterator<T>::operator==(const ListIterator &it) const {
-  return _node == it._node;
+bool _ListIterator<T>::operator==(const _ListIterator &it) const {
+  return node_ == it.node_;
 }
 template<class T>
-bool ListIterator<T>::operator!=(const ListIterator &it) const {
+bool _ListIterator<T>::operator!=(const _ListIterator &it) const {
   return !(operator==(it));
 }
 
 template<class T>
-typename ListConstIterator<T>::reference ListConstIterator<T>::operator*() const {
-  return _node->value;
+typename _ListConstIterator<T>::reference
+_ListConstIterator<T>::operator*() const {
+  return node_->value;
 }
 template<class T>
-typename ListConstIterator<T>::pointer ListConstIterator<T>::operator->() const {
+typename _ListConstIterator<T>::pointer
+_ListConstIterator<T>::operator->() const {
   return &(operator*());
 }
 template<class T>
-ListConstIterator<T> &ListConstIterator<T>::operator++() {
-  _node = _node->next;
+_ListConstIterator<T> &_ListConstIterator<T>::operator++() {
+  node_ = node_->next;
   return *this;
 }
 template<class T>
-const ListConstIterator<T> ListConstIterator<T>::operator++(int) {
-  ListConstIterator tmp = *this;
+const _ListConstIterator<T> _ListConstIterator<T>::operator++(int) {
+  _ListConstIterator tmp = *this;
   operator++();
   return tmp;
 }
 template<class T>
-ListConstIterator<T> &ListConstIterator<T>::operator--() {
-  _node = _node->prev;
+_ListConstIterator<T> &_ListConstIterator<T>::operator--() {
+  node_ = node_->prev;
 }
 template<class T>
-const ListConstIterator<T> ListConstIterator<T>::operator--(int) {
-  ListConstIterator tmp = *this;
+const _ListConstIterator<T> _ListConstIterator<T>::operator--(int) {
+  _ListConstIterator tmp = *this;
   operator--();
   return tmp;
 }
 template<class T>
-bool ListConstIterator<T>::operator==(const ListConstIterator &it) const {
-  return _node == it._node;
+bool _ListConstIterator<T>::operator==(const _ListConstIterator &it) const {
+  return node_ == it.node_;
 }
 template<class T>
-bool ListConstIterator<T>::operator!=(const ListConstIterator &it) const {
+bool _ListConstIterator<T>::operator!=(const _ListConstIterator &it) const {
   return !(operator==(it));
 }
 

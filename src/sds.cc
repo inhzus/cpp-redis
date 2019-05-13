@@ -6,7 +6,7 @@
 namespace rd {
 
 String::size_type String::getNewCapacity(String::size_type n) const {
-  size_type _old = _storage_end - _begin;
+  size_type _old = storage_end_ - begin_;
   return _old + (_old > n ? _old : n);
 }
 
@@ -14,59 +14,59 @@ String::String(const char *s) {
   allocateAndCopy(s, s + strlen(s));
 }
 String::String(const String &string) {
-  allocateAndCopy(string._begin, string._end);
+  allocateAndCopy(string.begin_, string.end_);
 }
 String::String(const char *s, String::size_type n) {
-  construct_aux(s, n, typename std::__is_integer<size_type>::__type());
+  constructAux(s, n, typename std::__is_integer<size_type>::__type());
 }
 String::~String() {
-  if (_begin != nullptr) {
-    _storage_end = _end = _begin = nullptr;
-    allocator.deallocate(_begin, capacity() + 1);
+  if (begin_ != nullptr) {
+    storage_end_ = end_ = begin_ = nullptr;
+    allocator.deallocate(begin_, capacity() + 1);
   }
 }
 void String::clear() {
-  _end = _begin;
-  *_end = 0;
+  end_ = begin_;
+  *end_ = 0;
 }
 
 String &String::assign(const String &string) {
-  return assign_aux(string.begin(), string.end(), std::__false_type());
+  return assignAux(string.begin(), string.end(), std::__false_type());
 }
 String &String::assign(const char *s) {
-  return assign_aux(s, s + strlen(s), std::__false_type());
+  return assignAux(s, s + strlen(s), std::__false_type());
 }
 String &String::assign(const char *s, String::size_type n) {
-  return assign_aux(s, n, std::__is_integer<size_type>::__type());
+  return assignAux(s, n, std::__is_integer<size_type>::__type());
 }
 void String::resize(String::size_type n) {
   if (n < size()) {
-    std::uninitialized_fill(_begin + n, _end, 0);
+    std::uninitialized_fill(begin_ + n, end_, 0);
   } else if (n < capacity()) {
-    _end = std::uninitialized_fill_n(_end, n, 0);
+    end_ = std::uninitialized_fill_n(end_, n, 0);
   } else {
     size_type offset = n - size();
     size_type newCapacity = getNewCapacity(offset);
     iterator newBegin = allocator.allocate(newCapacity + 1);
-    _end = std::uninitialized_copy(_begin, _end, newBegin);
-    _end = std::uninitialized_fill_n(_end, offset, 0);
-    allocator.deallocate(_begin, capacity() + 1);
-    _begin = newBegin;
-    _storage_end = _begin + newCapacity;
+    end_ = std::uninitialized_copy(begin_, end_, newBegin);
+    end_ = std::uninitialized_fill_n(end_, offset, 0);
+    allocator.deallocate(begin_, capacity() + 1);
+    begin_ = newBegin;
+    storage_end_ = begin_ + newCapacity;
   }
-  *_end = 0;
+  *end_ = 0;
 }
 String String::substr(String::size_type pos, String::size_type offset) const {
-  return String(_begin + pos, _begin + pos + offset);
+  return String(begin_ + pos, begin_ + pos + offset);
 }
 void String::trim(const char *set) {
   iterator newBegin, newEnd;
-  for (newBegin = _begin; newBegin != _end && strchr(set, *newBegin); newBegin++);
-  for (newEnd = _end - 1; newEnd != _begin - 1 && strchr(set, *newEnd); newEnd--);
+  for (newBegin = begin_; newBegin != end_ && strchr(set, *newBegin); newBegin++);
+  for (newEnd = end_ - 1; newEnd != begin_ - 1 && strchr(set, *newEnd); newEnd--);
   newEnd++;
-  std::uninitialized_copy(newBegin, newEnd, _begin);
-  _end = _begin + (newEnd - newBegin);
-  *_end = 0;
+  std::uninitialized_copy(newBegin, newEnd, begin_);
+  end_ = begin_ + (newEnd - newBegin);
+  *end_ = 0;
 }
 String &String::operator=(const String &string) {
   return assign(string); // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
@@ -78,7 +78,7 @@ String &String::operator+=(const char *s) {
   return append(s, s + strlen(s));
 }
 String &String::operator+=(const String &string) {
-  return append(string._begin, string._end);
+  return append(string.begin_, string.end_);
 }
 String operator+(const String &lhs, const String &rhs) {
   String ret(lhs);
@@ -101,6 +101,6 @@ bool operator!=(const rd::String &lhs, const rd::String &rhs) {
   return !(lhs == rhs);
 }
 std::ostream &operator<<(std::ostream &os, const rd::String &string) {
-  return os << string._begin;
+  return os << string.begin_;
 }
 }
