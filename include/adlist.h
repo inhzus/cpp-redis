@@ -80,11 +80,70 @@ class ListIterator {
 };
 
 template<class T>
+class ListConstIterator {
+ public:
+  typedef T value_type;
+  typedef const T *pointer;
+  typedef const T &reference;
+  typedef std::bidirectional_iterator_tag iterator_category;
+
+  typedef ListNode<T> *link_type;
+  typedef size_t size_type;
+  typedef ptrdiff_t difference_type;
+
+ private:
+  link_type _node;
+
+ public:
+  ListConstIterator() : _node(nullptr) {}
+  ListConstIterator(const ListConstIterator &it) : _node(it._node) {}
+  explicit ListConstIterator(const link_type &node) : _node(node) {}
+
+  reference operator*() const {
+    return _node->value;
+  }
+
+  pointer operator->() const {
+    return &(operator*());
+  }
+
+  ListConstIterator &operator++() {
+    _node = _node->next;
+    return *this;
+  }
+
+  const ListConstIterator operator++(int) {
+    ListConstIterator tmp = *this;
+    operator++();
+    return tmp;
+  }
+
+  ListConstIterator &operator--() {
+    _node = _node->prev;
+  }
+
+  const ListConstIterator operator--(int) {
+    ListConstIterator tmp = *this;
+    operator--();
+    return tmp;
+  }
+
+  bool operator==(const ListConstIterator &it) const {
+    return _node == it._node;
+  }
+
+  bool operator!=(const ListConstIterator &it) const {
+    return !(operator==(it));
+  }
+
+};
+
+template<class T>
 class List {
  public:
   typedef T value_type;
   typedef ListIterator<T> iterator;
-  typedef ListIterator<T> const_iterator;
+  typedef ListConstIterator<T> const_iterator;
   typedef std::reverse_iterator<ListIterator<T>> reverse_iterator;
   typedef ListNode<T> *link_type;
   typedef T &reference;
