@@ -40,10 +40,13 @@ TEST(adlist, iterator) {
 
 TEST(adlist, push) {
   rd::List<int> l(v.begin(), v.end());
-  l.push_front(3);
+  l.pushFront(3);
   ASSERT_THAT(l, ElementsAre(3, 1, 2, 5, 3));
-  l.push_back(4);
+  l.pushBack(4);
   ASSERT_THAT(l, ElementsAre(3, 1, 2, 5, 3, 4));
+  ASSERT_THAT(l.popBack(), 4);
+  ASSERT_THAT(l.popFront(), 3);
+  ASSERT_THAT(l, ElementsAre(1, 2, 5, 3));
 }
 
 TEST(adlist, insert) {
