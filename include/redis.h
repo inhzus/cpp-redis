@@ -4,6 +4,7 @@
 
 #ifndef REDIS_REDIS_H
 #define REDIS_REDIS_H
-#include "sds.h"
 #include "adlist.h"
+#include "dict.h"
+#include "sds.h"
 #endif //REDIS_REDIS_H
