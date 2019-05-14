@@ -55,6 +55,7 @@ class String {
   size_type size() const { return end_ - begin_; }
   size_type empty() const { return end_ == begin_; }
   void clear();
+  const char *data() const;
 
   template<class InIt>
   String &append(InIt first, InIt last);

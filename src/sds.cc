@@ -29,6 +29,9 @@ void String::clear() {
   end_ = begin_;
   *end_ = 0;
 }
+const char *String::data() const {
+  return begin_;
+}
 
 String &String::assign(const String &string) {
   return assignAux(string.begin(), string.end(), std::__false_type());
