@@ -45,6 +45,7 @@ struct _DictTable {
   vector<_DictEntry<K, V> *> table_;
   size_type capacity_;
   size_type size_;
+  Allocator<_DictEntry<K, V>> allocator_;
 
   inline size_t mask() const { return capacity_ - 1; }
 
@@ -126,6 +127,7 @@ class Dict {
   size_type process_;
   size_type iter_num_;
   bool resizable;
+  Allocator<_DictTable<K, V>> allocator_;
 
   size_type fixSize(size_type n) const;
   template<class T>
@@ -187,7 +189,9 @@ _DictTable<K, V>::~_DictTable() {
     while (entry != nullptr) {
       _DictEntry<K, V> *tmp = entry;
       entry = entry->next;
-      delete (tmp);
+      allocator_.destroy(tmp);
+      allocator_.deallocate(tmp, 1);
+//      delete (tmp);
     }
   }
 }
@@ -312,7 +316,9 @@ typename Dict<K, V>::iterator Dict<K, V>::setKeyValue(
       prev = cur;
     }
   } else {
-    entry = new _DictEntry<K, V>(key, value);
+    entry = table->allocator_.allocate(1);
+    table->allocator_.construct(entry, key, value);
+//    entry = new _DictEntry<K, V>(key, value);
     table->size_++;
   }
   // entry cannot be nullptr since iter != nullptr
@@ -364,7 +370,9 @@ void Dict<K, V>::resize(size_type n) {
   if (real_size == data_->capacity_) { return; }
 //  rehash_ = make_shared<_DictTable<K, V>>(real_size);
   assert(rehash_ == nullptr);
-  rehash_ = new _DictTable<K, V>(real_size);
+  rehash_ = allocator_.allocate(1);
+  allocator_.construct(rehash_, real_size);
+//  rehash_ = new _DictTable<K, V>(real_size);
   // Note that do not need to set process_ to 0,
   // since it has been set to 0 in stopRehash and constructor.
 }
@@ -372,7 +380,9 @@ void Dict<K, V>::resize(size_type n) {
 template<class K, class V>
 void Dict<K, V>::stopRehash() {
   std::swap(data_, rehash_);
-  delete (rehash_);
+  allocator_.destroy(rehash_);
+  allocator_.deallocate(rehash_, 1);
+//  delete (rehash_);
   rehash_ = nullptr;
   process_ = 0;
 }
@@ -392,12 +402,20 @@ template<class K, class V>
 Dict<K, V>::Dict()
     : process_(0), iter_num_(0), resizable(true) {
   rehash_ = nullptr;
-  data_ = new _DictTable<K, V>(kInitialSize);
+  data_ = allocator_.allocate(1);
+  allocator_.construct(data_, kInitialSize);
+//  data_ = new _DictTable<K, V>(kInitialSize);
 }
 template<class K, class V>
 Dict<K, V>::~Dict() {
-  delete (data_);
-  delete (rehash_);
+  allocator_.destroy(data_);
+  allocator_.deallocate(data_, 1);
+  if (rehash_ != nullptr) {
+    allocator_.destroy(rehash_);
+    allocator_.deallocate(rehash_, 1);
+  }
+//  delete (data_);
+//  delete (rehash_);
 }
 
 template<class K, class V>
@@ -477,7 +495,9 @@ bool Dict<K, V>::remove(const K &key) {
         } else {
           table->at(idx) = cur->next;
         }
-        delete (cur);
+        table->allocator_.destroy(cur);
+        table->allocator_.deallocate(cur, 1);
+//        delete (cur);
         table->size_--;
         return true;
       }

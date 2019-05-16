@@ -22,7 +22,7 @@ String::String(const char *s, String::size_type n) {
 String::~String() {
   if (begin_ != nullptr) {
     storage_end_ = end_ = begin_ = nullptr;
-    allocator.deallocate(begin_, capacity() + 1);
+    allocator_.deallocate(begin_, capacity() + 1);
   }
 }
 void String::clear() {
@@ -50,10 +50,10 @@ void String::resize(String::size_type n) {
   } else {
     size_type offset = n - size();
     size_type newCapacity = getNewCapacity(offset);
-    iterator newBegin = allocator.allocate(newCapacity + 1);
+    iterator newBegin = allocator_.allocate(newCapacity + 1);
     end_ = std::uninitialized_copy(begin_, end_, newBegin);
     end_ = std::uninitialized_fill_n(end_, offset, 0);
-    allocator.deallocate(begin_, capacity() + 1);
+    allocator_.deallocate(begin_, capacity() + 1);
     begin_ = newBegin;
     storage_end_ = begin_ + newCapacity;
   }

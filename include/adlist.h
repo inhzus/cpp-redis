@@ -99,6 +99,7 @@ class List {
  private:
   link_type tail_;
   size_type len_{};
+  Allocator<_ListNode<T>> allocator_;
 
   void emptyInitialize();
   template<class InIt>
@@ -147,7 +148,7 @@ class List {
 };
 template<class T>
 void List<T>::emptyInitialize() {
-  tail_ = new _ListNode<T>();
+  tail_ = allocator_.allocate(1);
   tail_->next = tail_;
   tail_->prev = tail_;
   len_ = 0;
@@ -171,7 +172,9 @@ void List<T>::listAux(size_type n,
 }
 template<class T>
 void List<T>::addNode(List::link_type node, const_reference val) {
-  auto pNode = new _ListNode<T>(val, node->prev, node);
+  auto pNode = allocator_.allocate(1);
+  allocator_.construct(pNode, val, node->prev, node);
+//  auto pNode = new _ListNode<T>(val, node->prev, node);
   node->prev->next = pNode;
   node->prev = pNode;
   len_++;
@@ -182,7 +185,9 @@ typename List<T>::link_type List<T>::removeNode(List::link_type node) {
   link_type prev = node->prev;
   next->prev = prev;
   prev->next = next;
-  delete node;
+  allocator_.destroy(node);
+  allocator_.deallocate(node, 1);
+//  delete node;
   len_--;
   return next;
 }
@@ -213,7 +218,9 @@ List<T> List<T>::copy() {
 template<class T>
 List<T>::~List() {
   eraseRange(tail_->next, tail_);
-  delete (tail_);
+  allocator_.destroy(tail_);
+  allocator_.deallocate(tail_, 1);
+//  delete (tail_);
 }
 template<class T>
 template<class InIt>
