@@ -63,7 +63,7 @@ struct _DictTable {
 
 //  _DictTable();
   explicit _DictTable(size_t n);
-  ~_DictTable() = default;
+  ~_DictTable();
   _DictEntry<K, V> *
   &at(size_type n) { return table_[n]; }
 };
@@ -73,7 +73,7 @@ class _DictIterator {
   friend class Dict<K, V>;
 
  public:
-  typedef size_t size_type;
+  typedef rd::size_type size_type;
   typedef _DictIterator<K, V> iterator;
   typedef std::forward_iterator_tag iterator_category;
   typedef _DictEntry<K, V> entry_type;
@@ -123,7 +123,7 @@ class Dict {
 
   typedef K key_type;
   typedef V value_type;
-  typedef size_t size_type;
+  typedef rd::size_type size_type;
   typedef _DictIterator<K, V> iterator;
   typedef _DictEntry<K, V> entry_type;
   typedef entry_type *pointer;
@@ -156,7 +156,7 @@ class Dict {
 
  public:
   Dict();
-  ~Dict() = default;
+  ~Dict();
 
   iterator begin();
   iterator end();
@@ -193,6 +193,16 @@ template<class K, class V>
 _DictTable<K, V>::_DictTable(size_t n)
     : capacity_(n), size_(0) {
   table_ = vector<_DictEntry<K, V> *>(n);
+}
+template<class K, class V>
+_DictTable<K, V>::~_DictTable() {
+  for (_DictEntry<K, V> *entry : table_) {
+    while (entry != nullptr) {
+      _DictEntry<K, V> *tmp = entry;
+      entry = entry->next;
+      delete (tmp);
+    }
+  }
 }
 template<class K, class V>
 _DictIterator<K, V>::_DictIterator(const _DictIterator &it)
@@ -366,6 +376,7 @@ void Dict<K, V>::resize(size_type n) {
   size_type real_size = fixSize(n);
   if (real_size == data_->capacity_) { return; }
 //  rehash_ = make_shared<_DictTable<K, V>>(real_size);
+  assert(rehash_ == nullptr);
   rehash_ = new _DictTable<K, V>(real_size);
   // Note that do not need to set process_ to 0,
   // since it has been set to 0 in stopRehash and constructor.
@@ -395,6 +406,11 @@ Dict<K, V>::Dict()
     : process_(0), iter_num_(0), resizable(true) {
   rehash_ = nullptr;
   data_ = new _DictTable<K, V>(kInitialSize);
+}
+template<class K, class V>
+Dict<K, V>::~Dict() {
+  delete (data_);
+  delete (rehash_);
 }
 
 template<class K, class V>

@@ -21,13 +21,14 @@ TEST(dict, constructor) {
     it++;
     ASSERT_THAT(it, dict->end());
   }
-  for (int i = 0; i < 20; i++) {
+  const int len = 1000;
+  for (int i = 0; i < len; i++) {
     dict->add(i, j);
   }
-  for (int i = 0; i < 20; i += 5) {
+  for (int i = 0; i < len; i += 5) {
     dict->remove(i);
   }
-  for (int i = 0; i < 20; i++) {
+  for (int i = 0; i < len; i++) {
     if (i % 5 == 0) {
       ASSERT_THAT(dict->get(i), nullptr);
     } else {
