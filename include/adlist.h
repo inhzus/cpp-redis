@@ -191,6 +191,7 @@ typename List<T>::link_type List<T>::eraseRange(
     List::link_type first, List::link_type last) {
   while (first != last)
     first = removeNode(first);
+  return last;
 }
 template<class T>
 List<T>::List() {
@@ -339,6 +340,7 @@ const _ListIterator<T> _ListIterator<T>::operator++(int) {
 template<class T>
 _ListIterator<T> &_ListIterator<T>::operator--() {
   node_ = node_->prev;
+  return *this;
 }
 template<class T>
 const _ListIterator<T> _ListIterator<T>::operator--(int) {
