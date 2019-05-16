@@ -141,7 +141,8 @@ class Dict {
   bool resizable;
 
   size_type fixSize(size_type n) const;
-  size_type reverseBit(size_type n) const;
+  template<class T>
+  T reverseBit(T n) const;
 
   iterator findIterIndex(const K &key);
   typename Dict<K, V>::iterator setKeyValue(
@@ -205,7 +206,7 @@ _DictIterator<K, V>::_DictIterator(
     _DictIterator::pointer cur, bool in_rehash)
     : cur_(cur), dict_(dict),
       index_(index), in_rehash_(in_rehash) {
-    dict_->acquireIterator(this);
+  dict_->acquireIterator(this);
 }
 template<class K, class V>
 _DictIterator<K, V>::~_DictIterator() {
@@ -255,10 +256,10 @@ Dict<K, V>::fixSize(Dict<K, V>::size_type n) const {
   return i;
 }
 template<class K, class V>
-typename Dict<K, V>::size_type
-Dict<K, V>::reverseBit(Dict<K, V>::size_type n) const {
-  Dict<K, V>::size_type s = 8 * sizeof(n),
-      mask = ~0u;
+template<class T>
+T Dict<K, V>::reverseBit(T n) const {
+  T s = 8 * sizeof(n),
+      mask = ~T();
   while ((s >>= 1u) > 0) {
     mask ^= (mask << s);
     n = ((n >> s) & mask) | ((n << s) & ~mask);
@@ -474,6 +475,7 @@ bool Dict<K, V>::remove(const K &key) {
           table->at(idx) = cur->next;
         }
         delete (cur);
+        table->size_--;
         return true;
       }
       prev = cur;
@@ -509,7 +511,7 @@ size_type Dict<K, V>::scan(size_type n, UnFn fn) {
   } else {
     _DictTable<K, V> *table = data_;
     size_type mask = table->mask();
-    for (pointer entry = table->at(mask);
+    for (pointer entry = table->at(n & mask);
          entry != nullptr; entry = entry->next) {
       fn(entry);
     }
