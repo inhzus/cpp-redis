@@ -7,7 +7,7 @@
 #include <cassert>
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <variant>
 #include <utility>
 #include <vector>
 #include "sds.h"
@@ -30,6 +30,15 @@ using std::vector;
 
 typedef size_t size_type;
 
+struct Any {};
+
+template<class T>
+struct Value : public Any {
+  T value;
+  explicit Value(const T &val) : value(val) {}
+  explicit Value(T &&val) : value(std::move(val)) {}
+};
+
 template<class K, class V>
 class _DictIterator;
 
@@ -50,7 +59,7 @@ struct _DictTable {
   size_type capacity_;
   size_type size_;
 
-  inline size_t capacityMask() const { return capacity_ - 1; }
+  inline size_t mask() const { return capacity_ - 1; }
 
 //  _DictTable();
   explicit _DictTable(size_t n);
@@ -132,6 +141,7 @@ class Dict {
   bool resizable;
 
   size_type fixSize(size_type n) const;
+  size_type reverseBit(size_type n) const;
 
   iterator findIterIndex(const K &key);
   typename Dict<K, V>::iterator setKeyValue(
@@ -140,7 +150,7 @@ class Dict {
   void resize(size_type n);
 
   inline void stopRehash();
-  inline void acquireIterator();
+  inline void acquireIterator(iterator *iter);
   inline void releaseIterator();
 
  public:
@@ -149,6 +159,8 @@ class Dict {
 
   iterator begin();
   iterator end();
+  size_type size() const;
+  bool empty() const;
 
   bool isRehashing()
   const { return rehash_ != nullptr; }
@@ -185,7 +197,7 @@ template<class K, class V>
 _DictIterator<K, V>::_DictIterator(const _DictIterator &it)
     : cur_(it.cur_), dict_(it.dict_),
       index_(it.index_), in_rehash_(it.in_rehash_) {
-  dict_->acquireIterator();
+  dict_->acquireIterator(this);
 }
 template<class K, class V>
 _DictIterator<K, V>::_DictIterator(
@@ -193,13 +205,13 @@ _DictIterator<K, V>::_DictIterator(
     _DictIterator::pointer cur, bool in_rehash)
     : cur_(cur), dict_(dict),
       index_(index), in_rehash_(in_rehash) {
-  if (cur_ != nullptr) {
-    dict_->acquireIterator();
-  }
+    dict_->acquireIterator(this);
 }
 template<class K, class V>
 _DictIterator<K, V>::~_DictIterator() {
-  dict_->releaseIterator();
+  if (cur_ != nullptr) {
+    dict_->releaseIterator();
+  }
 }
 template<class K, class V>
 typename _DictIterator<K, V>::iterator &
@@ -236,31 +248,41 @@ _DictIterator<K, V>::operator++(int) {
 
 template<class K, class V>
 typename Dict<K, V>::size_type
-Dict<K, V>::fixSize(size_type n) const {
+Dict<K, V>::fixSize(Dict<K, V>::size_type n) const {
   size_type i = kInitialSize;
   if (n >= SIZE_MAX) { return SIZE_MAX + 1U; }
   for (; i < n; i *= 2);
   return i;
 }
+template<class K, class V>
+typename Dict<K, V>::size_type
+Dict<K, V>::reverseBit(Dict<K, V>::size_type n) const {
+  Dict<K, V>::size_type s = 8 * sizeof(n),
+      mask = ~0u;
+  while ((s >>= 1u) > 0) {
+    mask ^= (mask << s);
+    n = ((n >> s) & mask) | ((n << s) & ~mask);
+  }
+  return n;
+}
 
 template<class K, class V>
 typename Dict<K, V>::iterator
 Dict<K, V>::findIterIndex(const K &key) {
-  size_type idx = 0;
-  if (data_->size_ == 0 && rehash_->size_ == 0) {
+  if (empty()) {
     return iterator(this);
   }
   if (isRehashing()) { rehash(); }
   _DictTable<K, V> *table = data_;
-  for (int i = 0; i < 2; i++, table = rehash_) {
-    idx = rd::hash<K>()(key) & table->capacityMask();
+  for (int i = 0; i < 1 + isRehashing(); i++, table = rehash_) {
+    size_type idx = rd::hash<K>()(key) & table->mask();
     pointer entry = table->at(idx);
     for (; entry != nullptr; entry = entry->next) {
       if (entry->key == key) {
         return iterator(this, idx, entry, i == 1);
       }
     }
-    if (!isRehashing()) { break; }
+//    if (!isRehashing()) { break; }
   }
   return iterator(this);
 }
@@ -269,6 +291,8 @@ typename Dict<K, V>::iterator Dict<K, V>::setKeyValue(
     _DictIterator<K, V> iter, K &key, V &value) {
   // new entry
   pointer entry = nullptr;
+  _DictTable<K, V> *table =
+      isRehashing() ? rehash_ : data_;
   // key was in table. Need to iterate and find it again
   // because of the single direction linked list.
   if (iter != nullptr) {
@@ -277,7 +301,7 @@ typename Dict<K, V>::iterator Dict<K, V>::setKeyValue(
     pointer prev = nullptr,
         cur = iter_table->at(iter.index_);
     for (; cur != nullptr; cur = cur->next) {
-      if (cur == iter.cur_) {
+      if (cur->key == iter->key) {
         if (prev != nullptr) {
           prev->next = cur->next;
         } else {
@@ -291,14 +315,14 @@ typename Dict<K, V>::iterator Dict<K, V>::setKeyValue(
     }
   } else {
     entry = new _DictEntry<K, V>(key, value);
+    table->size_++;
   }
   // entry cannot be nullptr since iter != nullptr
   assert(entry != nullptr);
-  _DictTable<K, V> *table =
-      isRehashing() ? rehash_ : data_;
-  size_type idx = hash<K>()(key) & table->capacityMask();
+  size_type idx = hash<K>()(key) & table->mask();
   entry->next = table->at(idx);
   table->at(idx) = entry;
+  expand();
   return iterator(this, idx, entry, table == rehash_);
 }
 template<class K, class V>
@@ -319,7 +343,7 @@ void Dict<K, V>::rehash(size_type n) {
          entry != nullptr;) {
       pointer next_entry = entry->next;
       size_type index = hash<K>()(entry->key)
-          & rehash_->capacityMask();
+          & rehash_->mask();
       entry->next = rehash_->at(index);
       rehash_->at(index) = entry;
       data_->size_--;
@@ -339,9 +363,8 @@ template<class K, class V>
 void Dict<K, V>::resize(size_type n) {
   if (isRehashing() || data_->size_ > n) { return; }
   size_type real_size = fixSize(n);
-  if (real_size == n) { return; }
+  if (real_size == data_->capacity_) { return; }
 //  rehash_ = make_shared<_DictTable<K, V>>(real_size);
-  delete (rehash_);
   rehash_ = new _DictTable<K, V>(real_size);
   // Note that do not need to set process_ to 0,
   // since it has been set to 0 in stopRehash and constructor.
@@ -351,13 +374,15 @@ template<class K, class V>
 void Dict<K, V>::stopRehash() {
   std::swap(data_, rehash_);
   delete (rehash_);
-  assert(rehash_ == nullptr);
+  rehash_ = nullptr;
   process_ = 0;
 }
 
 template<class K, class V>
-void Dict<K, V>::acquireIterator() {
-  iter_num_++;
+void Dict<K, V>::acquireIterator(iterator *iter) {
+  if (*iter != nullptr) {
+    iter_num_++;
+  }
 }
 template<class K, class V>
 void Dict<K, V>::releaseIterator() {
@@ -373,11 +398,22 @@ Dict<K, V>::Dict()
 
 template<class K, class V>
 typename Dict<K, V>::iterator Dict<K, V>::begin() {
-  return iterator(this, 0, data_->at(0));
+  iterator it(this, 0, data_->at(0));
+  return ++it;
 }
 template<class K, class V>
 typename Dict<K, V>::iterator Dict<K, V>::end() {
   return iterator(this);
+}
+template<class K, class V>
+typename Dict<K, V>::size_type Dict<K, V>::size() const {
+  return data_->size_ +
+      (isRehashing() ? rehash_->size_ : 0);
+}
+template<class K, class V>
+bool Dict<K, V>::empty() const {
+  return data_->size_ == 0 &&
+      (isRehashing() ? rehash_->size_ == 0 : true);
 }
 
 template<class K, class V>
@@ -417,17 +453,72 @@ Dict<K, V>::add(K &key, V &value) {
 template<class K, class V>
 typename Dict<K, V>::iterator
 Dict<K, V>::replace(const K &key, V &value) {
-  if (isRehashing()) { rehash();}
+  if (isRehashing()) { rehash(); }
   return setKeyValue(findIterIndex(key), key, value);
 }
 template<class K, class V>
 bool Dict<K, V>::remove(const K &key) {
+  if (empty()) {
+    return false;
+  }
+  if (isRehashing()) { rehash(); }
+  _DictTable<K, V> *table = data_;
+  for (int i = 0; i < 1 + isRehashing(); i++, table = rehash_) {
+    size_type idx = hash<K>()(key) & table->mask();
+    for (pointer prev = nullptr, cur = table->at(idx);
+         cur != nullptr; cur = cur->next) {
+      if (cur->key == key) {
+        if (prev != nullptr) {
+          prev->next = cur->next;
+        } else {
+          table->at(idx) = cur->next;
+        }
+        delete (*cur);
+        return true;
+      }
+      prev = cur;
+    }
+  }
   return false;
 }
 template<class K, class V>
 template<class UnFn>
 size_type Dict<K, V>::scan(size_type n, UnFn fn) {
-  return 0;
+  if (empty()) { return 0; }
+  if (isRehashing()) {
+    _DictTable<K, V> *foo = data_, *bar = rehash_;
+    if (foo->size_ > bar->size_) {
+      foo = rehash_;
+      bar = data_;
+    }
+    size_type foo_mask = foo->mask(), bar_mask = bar->mask();
+    for (pointer entry = foo->at(n & foo_mask);
+         entry != nullptr; entry = entry->next) {
+      fn(entry);
+    }
+    do {
+      for (pointer entry = bar->at(n & bar_mask);
+           entry != nullptr; entry = entry->next) {
+        fn(entry);
+      }
+      n |= ~bar_mask;
+      n = reverseBit(n);
+      n++;
+      n = reverseBit(n);
+    } while (n & (foo_mask ^ bar_mask));
+  } else {
+    _DictTable<K, V> *table = data_;
+    size_type mask = table->mask();
+    for (pointer entry = table->at(mask);
+         entry != nullptr; entry = entry->next) {
+      fn(entry);
+    }
+    n |= ~mask;
+    n = reverseBit(n);
+    n++;
+    n = reverseBit(n);
+  }
+  return n;
 }
 }
 
