@@ -473,7 +473,7 @@ bool Dict<K, V>::remove(const K &key) {
         } else {
           table->at(idx) = cur->next;
         }
-        delete (*cur);
+        delete (cur);
         return true;
       }
       prev = cur;
