@@ -5,10 +5,13 @@
 #ifndef REDIS_SDS_H
 #define REDIS_SDS_H
 
-#include <cstdio>
+// For strlen, strchr
 #include <cstring>
+// For partial specialization std::hash
+#include <functional>
+// For ostream
 #include <iostream>
-#include <memory>
+#include "common.h"
 
 namespace rd {
 class String {
@@ -16,7 +19,7 @@ class String {
   typedef char value_type;
   typedef char *iterator;
   typedef const char *const_iterator;
-  typedef size_t size_type;
+  typedef rd::size_type size_type;
   typedef char &reference;
   typedef const char &const_reference;
   typedef ptrdiff_t difference_type;
@@ -143,6 +146,15 @@ String &String::assign(InIt first, InIt last) {
   return assignAux(first, last, std::__is_integer<InIt>::__type());
 }
 
+}
+
+namespace std {
+template<>
+struct hash<rd::String> {
+  std::size_t operator()(const rd::String &key) const {
+    return std::_Hash_impl::hash(key.data(), key.size());
+  }
+};
 }
 
 #endif //REDIS_SDS_H

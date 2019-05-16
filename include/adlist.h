@@ -5,9 +5,9 @@
 #ifndef REDIS_ADLIST_H
 #define REDIS_ADLIST_H
 
+// For std::find
 #include <algorithm>
-#include <iterator>
-#include <memory>
+#include "common.h"
 
 namespace rd {
 template<class T>
@@ -30,7 +30,7 @@ class _ListIterator {
   typedef std::bidirectional_iterator_tag iterator_category;
 
   typedef _ListNode<T> *link_type;
-  typedef size_t size_type;
+  typedef rd::size_type size_type;
   typedef ptrdiff_t difference_type;
 
   link_type node_;
@@ -59,7 +59,7 @@ class _ListConstIterator {
   typedef std::bidirectional_iterator_tag iterator_category;
 
   typedef const _ListNode<T> *link_type;
-  typedef size_t size_type;
+  typedef rd::size_type size_type;
   typedef ptrdiff_t difference_type;
 
   link_type node_;
@@ -93,7 +93,7 @@ class List {
   typedef _ListNode<T> *link_type;
   typedef T &reference;
   typedef const T &const_reference;
-  typedef size_t size_type;
+  typedef rd::size_type size_type;
   typedef ptrdiff_t difference_type;
 
  private:
@@ -142,7 +142,7 @@ class List {
   iterator search(const_reference val);
   void rotate();
   List &merge(List &list);
-  value_type operator[](int n);
+  value_type operator[](size_type n);
   List &operator=(const List &list);
 };
 template<class T>
@@ -291,16 +291,16 @@ bool List<T>::empty() const {
   return len_ == 0;
 }
 template<class T>
-typename List<T>::value_type List<T>::operator[](const int n) {
+typename List<T>::value_type List<T>::operator[](size_type n) {
   iterator pit;
   if (n >= 0) {
     pit = iterator(tail_->next);
-    for (int i = n; i != 0; i--) {
+    for (size_type i = n; i != 0; i--) {
       pit++;
     }
   } else {
     pit = iterator(tail_);
-    for (int i = n; i != 0; i++) {
+    for (size_type i = n; i != 0; i++) {
       pit--;
     }
   }

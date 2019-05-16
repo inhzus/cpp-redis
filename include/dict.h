@@ -4,31 +4,18 @@
 
 #ifndef REDIS_DICT_H
 #define REDIS_DICT_H
+// For assert
 #include <cassert>
-#include <memory>
-#include <string>
-#include <variant>
-#include <utility>
+// For std::hash
+#include <functional>
+// Used in _DictTable.table_
 #include <vector>
-#include "sds.h"
-
-namespace std {
-template<>
-struct hash<rd::String> {
-  std::size_t operator()(const rd::String &key) const {
-    return std::_Hash_impl::hash(key.data(), key.size());
-  }
-};
-//template<>
-//struct __is_fast_hash<hash<rd::String>> : std::false_type {};
-}
+#include "common.h"
 
 namespace rd {
 
 using std::hash;
 using std::vector;
-
-typedef size_t size_type;
 
 struct Any {};
 
@@ -285,7 +272,7 @@ Dict<K, V>::findIterIndex(const K &key) {
   }
   if (isRehashing()) { rehash(); }
   _DictTable<K, V> *table = data_;
-  for (int i = 0; i < 1 + isRehashing(); i++, table = rehash_) {
+  for (size_type i = 0; i < 1 + isRehashing(); i++, table = rehash_) {
     size_type idx = rd::hash<K>()(key) & table->mask();
     pointer entry = table->at(idx);
     for (; entry != nullptr; entry = entry->next) {
@@ -340,7 +327,7 @@ template<class K, class V>
 void Dict<K, V>::rehash(size_type n) {
   // Note that iterator is not safe rehashing.
   if (!isRehashable() || !isRehashing()) { return; }
-  for (int i = 0; i != n && data_->size_ != 0; i++) {
+  for (size_type i = 0; i != n && data_->size_ != 0; i++) {
     size_type visited_buckets = 0;
     // Note that process_ can't overflow as there are
     // more elements because data->size_ != 0
@@ -480,7 +467,7 @@ bool Dict<K, V>::remove(const K &key) {
   }
   if (isRehashing()) { rehash(); }
   _DictTable<K, V> *table = data_;
-  for (int i = 0; i < 1 + isRehashing(); i++, table = rehash_) {
+  for (size_type i = 0; i < 1 + isRehashing(); i++, table = rehash_) {
     size_type idx = hash<K>()(key) & table->mask();
     for (pointer prev = nullptr, cur = table->at(idx);
          cur != nullptr; cur = cur->next) {
