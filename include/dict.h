@@ -4,11 +4,7 @@
 
 #ifndef REDIS_DICT_H
 #define REDIS_DICT_H
-// For assert
-#include <cassert>
-// For std::hash
-#include <functional>
-// Used in _DictTable.table_
+// vector used in _DictTable.table_
 #include <vector>
 #include "common.h"
 
@@ -103,10 +99,11 @@ class Dict {
   typedef entry_type &reference;
 
  private:
+  const size_type kForceResizeRatio = 5;
   const size_type kInitialSize = 4;
   const size_type kRehashSliceLength = 10;
+  const size_type kRehashMsDuration = 100;
   const size_type kResizeRatio = 1;
-  const size_type kForceResizeRatio = 5;
 
   _DictTable *data_, *rehash_;
   size_type process_;
@@ -142,6 +139,7 @@ class Dict {
   bool isRehashable()
   const { return iter_num_ == 0; }
 
+  void rehashMilliseconds(size_type n);
   void shrink();
   void expand();
 

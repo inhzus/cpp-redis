@@ -2,6 +2,12 @@
 // Created by suun on 5/17/19.
 //
 
+// cassert for assert
+// chrono for time diff
+// functional for std::hash
+#include <cassert>
+#include <chrono>
+#include <functional>
 #include "dict.h"
 
 namespace rd {
@@ -9,10 +15,6 @@ _DictEntry::_DictEntry(Var &k, Var &v) : next() {
   key = k;
   value = v;
 }
-
-//
-//_DictTable::_DictTable()
-//    : data_(), capacity_(0), size_(0) {}
 
 _DictTable::_DictTable(size_t n)
     : capacity_(n), size_(0) {
@@ -256,6 +258,17 @@ bool Dict::empty() const {
       (isRehashing() ? rehash_->size_ == 0 : true);
 }
 
+void Dict::rehashMilliseconds(rd::size_type n) {
+  std::chrono::time_point<std::chrono::system_clock> end =
+      std::chrono::system_clock::now() + std::chrono::milliseconds(n);
+  while (std::chrono::system_clock::now() < end) {
+    if (isRehashing()) {
+      rehash(kRehashMsDuration);
+    } else {
+      break;
+    }
+  }
+}
 void Dict::shrink() {
   if (!resizable || isRehashing()) { return; }
   size_type minimal = data_->size_;
