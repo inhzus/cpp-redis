@@ -28,7 +28,7 @@ struct _DictTable {
   vector<_DictEntry *> table_;
   size_type capacity_;
   size_type size_;
-  Allocator<_DictEntry> allocator_;
+//  Allocator<_DictEntry> allocator_;
 
   inline size_t mask() const { return capacity_ - 1; }
 
@@ -109,7 +109,7 @@ class Dict {
   size_type process_;
   size_type iter_num_;
   bool resizable;
-  Allocator<_DictTable> allocator_;
+//  Allocator<_DictTable> allocator_;
 
   size_type fixSize(size_type n) const;
   template<class T>

@@ -26,9 +26,9 @@ _DictTable::~_DictTable() {
     while (entry != nullptr) {
       _DictEntry *tmp = entry;
       entry = entry->next;
-      allocator_.destroy(tmp);
-      allocator_.deallocate(tmp, 1);
-//      delete (tmp);
+//      allocator_.destroy(tmp);
+//      allocator_.deallocate(tmp, 1);
+      delete tmp;
     }
   }
 }
@@ -140,9 +140,9 @@ typename Dict::iterator Dict::setKeyValue(
       prev = cur;
     }
   } else {
-    entry = table->allocator_.allocate(1);
-    table->allocator_.construct(entry, key, value);
-//    entry = new _DictEntry(key, value);
+//    entry = table->allocator_.allocate(1);
+//    table->allocator_.construct(entry, key, value);
+    entry = new _DictEntry(key, value);
     table->size_++;
   }
   // entry cannot be nullptr since iter != nullptr
@@ -194,18 +194,18 @@ void Dict::resize(size_type n) {
   if (real_size == data_->capacity_) { return; }
 //  rehash_ = make_shared<_DictTable>(real_size);
   assert(rehash_ == nullptr);
-  rehash_ = allocator_.allocate(1);
-  allocator_.construct(rehash_, real_size);
-//  rehash_ = new _DictTable(real_size);
+//  rehash_ = allocator_.allocate(1);
+//  allocator_.construct(rehash_, real_size);
+  rehash_ = new _DictTable(real_size);
   // Note that do not need to set process_ to 0,
   // since it has been set to 0 in stopRehash and constructor.
 }
 
 void Dict::stopRehash() {
   std::swap(data_, rehash_);
-  allocator_.destroy(rehash_);
-  allocator_.deallocate(rehash_, 1);
-//  delete (rehash_);
+//  allocator_.destroy(rehash_);
+//  allocator_.deallocate(rehash_, 1);
+  delete rehash_;
   rehash_ = nullptr;
   process_ = 0;
 }
@@ -223,20 +223,18 @@ void Dict::releaseIterator() {
 Dict::Dict()
     : process_(0), iter_num_(0), resizable(true) {
   rehash_ = nullptr;
-  data_ = allocator_.allocate(1);
-  allocator_.construct(data_, kInitialSize);
-//  data_ = new _DictTable(kInitialSize);
+//  data_ = allocator_.allocate(1);
+//  allocator_.construct(data_, kInitialSize);
+  data_ = new _DictTable(kInitialSize);
 }
 
 Dict::~Dict() {
-  allocator_.destroy(data_);
-  allocator_.deallocate(data_, 1);
-  if (rehash_ != nullptr) {
-    allocator_.destroy(rehash_);
-    allocator_.deallocate(rehash_, 1);
-  }
-//  delete (data_);
-//  delete (rehash_);
+//  allocator_.destroy(data_);
+//  allocator_.deallocate(data_, 1);
+//    allocator_.destroy(rehash_);
+//    allocator_.deallocate(rehash_, 1);
+  delete data_;
+  delete rehash_;
 }
 
 typename Dict::iterator Dict::begin() {
@@ -324,9 +322,9 @@ bool Dict::remove(const key_type &key) {
         } else {
           table->at(idx) = cur->next;
         }
-        table->allocator_.destroy(cur);
-        table->allocator_.deallocate(cur, 1);
-//        delete (cur);
+//        table->allocator_.destroy(cur);
+//        table->allocator_.deallocate(cur, 1);
+        delete cur;
         table->size_--;
         return true;
       }

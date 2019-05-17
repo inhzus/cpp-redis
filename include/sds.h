@@ -29,7 +29,7 @@ class String {
   iterator end_{};
   iterator storage_end_{};
 
-  Allocator<value_type> allocator_;
+//  Allocator<value_type> allocator_;
 
   template<class InIt>
   void allocateAndCopy(InIt first, InIt last);
@@ -86,7 +86,8 @@ class String {
 template<class InIt>
 void String::allocateAndCopy(InIt first, InIt last) {
   auto len = static_cast<size_type>(std::distance(first, last));
-  begin_ = allocator_.allocate(len + 1);
+//  begin_ = allocator_.allocate(len + 1);
+  begin_ = new value_type[len + 1];
   std::uninitialized_copy(first, last, begin_);
   storage_end_ = end_ = begin_ + len;
   *end_ = 0;
@@ -112,10 +113,12 @@ String &String::append(InIt first, InIt last) {
     *end_ = 0;
   } else {
     size_type newCapacity = getNewCapacity(offset);
-    iterator newBeginIterator = allocator_.allocate(newCapacity + 1);
+//    iterator newBeginIterator = allocator_.allocate(newCapacity + 1);
+    auto newBeginIterator = new value_type[newCapacity + 1];
     end_ = std::uninitialized_copy(begin_, end_, newBeginIterator);
     end_ = std::uninitialized_copy(first, last, end_);
-    allocator_.deallocate(begin_, capacity() + 1);
+    delete[] begin_;
+//    allocator_.deallocate(begin_, capacity() + 1);
     begin_ = newBeginIterator;
     *end_ = 0;
     storage_end_ = newBeginIterator + newCapacity;
@@ -130,8 +133,10 @@ String &String::assignAux(InIt first, InIt last, std::__false_type) {
     end_ = begin_ + len;
     *end_ = 0;
   } else {
-    allocator_.deallocate(begin_, capacity() + 1);
-    begin_ = allocator_.allocate(len + 1);
+//    allocator_.deallocate(begin_, capacity() + 1);
+//    begin_ = allocator_.allocate(len + 1);
+    delete[] begin_;
+    begin_ = new value_type[len + 1];
     storage_end_ = end_ = std::uninitialized_copy(first, last, begin_);
     *end_ = 0;
   }
