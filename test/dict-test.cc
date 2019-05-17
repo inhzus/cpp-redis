@@ -8,35 +8,61 @@
 using namespace testing;
 
 using Var = std::variant<int, float>;
+
+std::shared_ptr<rd::Dict> dict;
+const int kLen = 9000;
+Var ki(5), kj(10);
 TEST(dict, constructor) {
-  std::shared_ptr<rd::Dict> dict =
-      std::make_shared<rd::Dict>();
-  dict->get(4);
-  rd::_DictIterator it(dict->begin());
-  dict->shrink();
-  dict->expand();
-  Var k(2), j(3);
-  {
-    dict->add(k, j);
-    dict->get(k);
-    it++;
-    ASSERT_THAT(it, dict->end());
+  dict = std::make_shared<rd::Dict>();
+}
+
+TEST(dict, add) {
+  for (Var i = 0; std::get<int>(i) < kLen; std::get<int>(i)++) {
+    dict->add(i, i);
   }
-  const int len = 1000;
-  for (Var i = 0; std::get<int>(i) < len; std::get<int>(i)++) {
-    dict->add(i, j);
+  ASSERT_THAT(dict->size(), kLen);
+  ASSERT_THAT(dict->get(ki)->value, ki);
+  ASSERT_THAT(dict->get(kj)->value, kj);
+  ASSERT_THAT(dict->isRehashing(), true);
+}
+
+TEST(dict, rehash) {
+  ASSERT_THAT(dict->isRehashing(), true);
+  dict->rehashMilliseconds(1000);
+  ASSERT_THAT(dict->isRehashing(), false);
+}
+
+TEST(dict, replace) {
+  int dur = 10;
+  for (Var i = 0; std::get<int>(i) < kLen; std::get<int>(i) += dur) {
+    Var val(std::get<int>(i) * 2);
+    dict->replace(i, val);
   }
-  for (int i = 0; i < len; i += 5) {
+  for (Var i = 0; std::get<int>(i) < kLen; std::get<int>(i)++) {
+    auto iter = dict->get(i);
+    if (std::get<int>(i) % dur == 0) {
+      ASSERT_THAT(std::get<int>(iter->key) * 2, std::get<int>(iter->value));
+    } else {
+      ASSERT_THAT(iter->key, iter->value);
+    }
+  }
+}
+
+TEST(dict, remove) {
+  int dur = 4;
+  for (int i = 0; i < kLen; i += dur) {
     dict->remove(i);
   }
-  for (int i = 0; i < len; i++) {
-    if (i % 5 == 0) {
+  for (int i = 0; i < kLen; i++) {
+    if (i % dur == 0) {
       ASSERT_THAT(dict->get(i), nullptr);
     } else {
-      ASSERT_THAT(dict->get(i)->key.index(), 0);
       ASSERT_THAT(dict->get(i), Not(nullptr));
     }
   }
+}
+
+TEST(dict, scan) {
   rd::size_type cursor = 0, count = 0;
   do {
     cursor = dict->scan(
