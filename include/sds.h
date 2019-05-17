@@ -130,7 +130,7 @@ String &String::assignAux(InIt first, InIt last, std::__false_type) {
     end_ = begin_ + len;
     *end_ = 0;
   } else {
-    allocator_.deallocate(begin_, capacity());
+    allocator_.deallocate(begin_, capacity() + 1);
     begin_ = allocator_.allocate(len + 1);
     storage_end_ = end_ = std::uninitialized_copy(first, last, begin_);
     *end_ = 0;

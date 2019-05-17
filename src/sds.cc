@@ -21,8 +21,8 @@ String::String(const char *s, String::size_type n) {
 }
 String::~String() {
   if (begin_ != nullptr) {
-    storage_end_ = end_ = begin_ = nullptr;
     allocator_.deallocate(begin_, capacity() + 1);
+    storage_end_ = end_ = begin_ = nullptr;
   }
 }
 void String::clear() {
