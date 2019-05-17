@@ -93,7 +93,7 @@ TEST(sds, sdsrange) {
   rd::String s1(firstAndSecondPtr);
   rd::String s2 = s1.substr(0, 4);
   ASSERT_STREQ(ptr, s2.begin());
-  rd::String s3 = s1.substr(4, 6);
+  rd::String s3 = s1.substr(4, 2);
   ASSERT_STREQ(s3.begin(), secondPtr);
 }
 
