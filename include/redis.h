@@ -7,4 +7,5 @@
 #include "adlist.h"
 #include "dict.h"
 #include "sds.h"
+#include "skiplist.h"
 #endif //REDIS_REDIS_H
