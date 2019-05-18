@@ -67,8 +67,10 @@ String String::substr(String::size_type pos, String::size_type offset) const {
 }
 void String::trim(const char *set) {
   iterator newBegin, newEnd;
-  for (newBegin = begin_; newBegin != end_ && strchr(set, *newBegin); newBegin++);
-  for (newEnd = end_ - 1; newEnd != begin_ - 1 && strchr(set, *newEnd); newEnd--);
+  for (newBegin = begin_; newBegin != end_ && strchr(set, *newBegin);
+       newBegin++);
+  for (newEnd = end_ - 1; newEnd != begin_ - 1 && strchr(set, *newEnd);
+       newEnd--);
   newEnd++;
   std::uninitialized_copy(newBegin, newEnd, begin_);
   end_ = begin_ + (newEnd - newBegin);
@@ -105,6 +107,12 @@ bool operator==(const rd::String &lhs, const rd::String &rhs) {
 }
 bool operator!=(const rd::String &lhs, const rd::String &rhs) {
   return !(lhs == rhs);
+}
+bool operator<(const rd::String &lhs, const rd::String &rhs) {
+  size_type l_size = lhs.size(), r_size = rhs.size();
+  size_type min_size = std::min(l_size, r_size);
+  int cmp = memcmp(lhs.data(), rhs.data(), min_size);
+  return (cmp == 0 && l_size < r_size) || cmp < 0;
 }
 std::ostream &operator<<(std::ostream &os, const rd::String &string) {
   return os << string.begin_;

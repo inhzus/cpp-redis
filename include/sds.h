@@ -80,6 +80,7 @@ class String {
   friend String operator+(const char *lhs, const String &rhs);
   friend bool operator==(const rd::String &lhs, const rd::String &rhs);
   friend bool operator!=(const rd::String &lhs, const rd::String &rhs);
+  friend bool operator<(const rd::String &lhs, const rd::String &rhs);
   friend std::ostream &operator<<(std::ostream &os, const rd::String &string);
 };
 
